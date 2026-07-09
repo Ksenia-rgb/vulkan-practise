@@ -6,12 +6,9 @@
 #include <glm/vec4.hpp>
 #include <glm/mat4x4.hpp>
 
-#include <vulkan/vulkan.h>
-
 #include <iostream>
 
-int main()
-{
+int main() {
   glfwInit();
 
   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -26,8 +23,7 @@ int main()
   glm::vec4 vec;
   auto test = matrix * vec;
 
-  while (!glfwWindowShouldClose(window))
-  {
+  while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
   }
 
