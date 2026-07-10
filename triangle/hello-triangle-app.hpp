@@ -1,11 +1,22 @@
 #ifndef HELLO_TRIANGLE_APP_HPP
 #define HELLO_TRIANGLE_APP_HPP
 
+#define VK_USE_PLATFORM_WIN32_KHR
+
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
+#define GLFW_EXPOSE_NATIVE_WIN32
+#include <GLFW/glfw3native.h>
+
+#include <vector>
+#include <optional>
+
 namespace triangle
 {
+  struct QueueFamilyIndices;
+  struct SwapChainSupportDetails;
+
   class HelloTriangleApp
   {
   public:
@@ -15,15 +26,85 @@ namespace triangle
     const uint32_t WIDTH = 800;
     const uint32_t HEIGHT = 600;
 
+#ifdef NDEBUG
+    const bool enableValidationLayers = false;
+#else
+    const bool enableValidationLayers = true;
+#endif
+
+    const std::vector< const char* > validationLayers = { "VK_LAYER_KHRONOS_validation" };
+    const std::vector< const char* > deviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
+
     GLFWwindow* window;
     VkInstance instance;
+    VkDebugUtilsMessengerEXT debugMessanger;
+    VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
+    VkDevice device;
+    VkQueue graphicQueue;
+    VkQueue presentQueue;
+    VkSurfaceKHR surface;
 
     void initWindow();
-    void createInstance();
-    void printAvailableExtensions();
     void initVulkan();
     void mainLoop();
-    void cleanUp();
+    void cleanup();
+
+    void createInstance();
+    void setupDebugMessenger();
+    void pickPhysicalDevice();
+    void createLogicalDevice();
+    void createSurface();
+    void createSwapChain();
+
+    void printAvailableExtensions();
+    bool checkValidationLayerSupport();
+    std::vector< const char* > getRequiredExtensions();
+
+    bool isDeviceSuitable(VkPhysicalDevice device);
+    QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
+    bool checkDeviceExtensionSupport(VkPhysicalDevice device);
+    SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
+
+    VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector< VkSurfaceFormatKHR >& availableFormats);
+    VkPresentModeKHR chooseSwapPresentMode(const std::vector< VkPresentModeKHR >& availablePresentModes);
+    VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
+  };
+
+  VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
+    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+    VkDebugUtilsMessageTypeFlagsEXT messageType,
+    const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+    void* pUserData
+  );
+
+  VkResult createDebugUtilsMessengerEXT(VkInstance instance,
+    const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
+    const VkAllocationCallbacks* pAllocator,
+    VkDebugUtilsMessengerEXT* pDebugMessenger
+  );
+
+  void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
+
+  void destroyDebugUtilsMessengerEXT(VkInstance instance,
+    VkDebugUtilsMessengerEXT debugMessenger,
+    const VkAllocationCallbacks* pAllocator
+  );
+
+  int rateDeviceSuitability(VkPhysicalDevice device);
+
+  struct QueueFamilyIndices
+  {
+    std::optional< uint32_t > graphicsFamily;
+    std::optional< uint32_t > presentFamily;
+
+    bool isComplete();
+  };
+
+  struct SwapChainSupportDetails
+  {
+    VkSurfaceCapabilitiesKHR capabilities;
+    std::vector< VkSurfaceFormatKHR > formats;
+    std::vector< VkPresentModeKHR > presentModes;
   };
 }
 
