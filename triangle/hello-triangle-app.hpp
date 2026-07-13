@@ -3,6 +3,7 @@
 
 #define VK_USE_PLATFORM_WIN32_KHR
 
+#define NOMINMAX
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
@@ -11,6 +12,7 @@
 
 #include <vector>
 #include <optional>
+#include <string>
 
 namespace triangle
 {
@@ -43,6 +45,14 @@ namespace triangle
     VkQueue graphicQueue;
     VkQueue presentQueue;
     VkSurfaceKHR surface;
+    VkSwapchainKHR swapChain;
+    VkFormat swapChainImageFormat;
+    VkExtent2D swapChainExtent;
+    std::vector< VkImage > swapChainImages;
+    std::vector< VkImageView > swapChainImageViews;
+    VkRenderPass renderPass;
+    VkPipelineLayout pipelineLayout;
+    VkPipeline graphicsPipeline;
 
     void initWindow();
     void initVulkan();
@@ -55,6 +65,9 @@ namespace triangle
     void createLogicalDevice();
     void createSurface();
     void createSwapChain();
+    void createImageViews();
+    void createRenderPass();
+    void createGraphicsPipeline();
 
     void printAvailableExtensions();
     bool checkValidationLayerSupport();
@@ -68,6 +81,8 @@ namespace triangle
     VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector< VkSurfaceFormatKHR >& availableFormats);
     VkPresentModeKHR chooseSwapPresentMode(const std::vector< VkPresentModeKHR >& availablePresentModes);
     VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
+
+    VkShaderModule createShaderModule(const std::vector< char >& code);
   };
 
   VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
@@ -106,6 +121,8 @@ namespace triangle
     std::vector< VkSurfaceFormatKHR > formats;
     std::vector< VkPresentModeKHR > presentModes;
   };
+
+  std::vector< char > readFile(const std::string& filename);
 }
 
 #endif
