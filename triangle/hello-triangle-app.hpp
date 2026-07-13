@@ -37,6 +37,8 @@ namespace triangle
     const std::vector< const char* > validationLayers = { "VK_LAYER_KHRONOS_validation" };
     const std::vector< const char* > deviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 
+    const int MAX_FRAMES_IN_FLIAGHT = 2;
+
     GLFWwindow* window;
     VkInstance instance;
     VkDebugUtilsMessengerEXT debugMessanger;
@@ -53,6 +55,17 @@ namespace triangle
     VkRenderPass renderPass;
     VkPipelineLayout pipelineLayout;
     VkPipeline graphicsPipeline;
+    std::vector< VkFramebuffer > swapChainFramebuffers;
+    VkCommandPool commandPool;
+    std::vector< VkCommandBuffer > commandBuffers;
+
+    std::vector< VkSemaphore > imageAvailableSemaphores;
+    std::vector< VkSemaphore >renderFinishedSemaphores;
+    std::vector< VkFence > inFlightFences;
+
+    bool framebufferResized = false;
+
+    uint32_t currentFrame = 0;
 
     void initWindow();
     void initVulkan();
@@ -68,6 +81,11 @@ namespace triangle
     void createImageViews();
     void createRenderPass();
     void createGraphicsPipeline();
+    void createFramebuffers();
+    void createCommandPool();
+    void createCommandBuffer();
+    void createSyncObjects();
+    void recreateSwapChain();
 
     void printAvailableExtensions();
     bool checkValidationLayerSupport();
@@ -83,6 +101,14 @@ namespace triangle
     VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
 
     VkShaderModule createShaderModule(const std::vector< char >& code);
+
+    void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
+
+    void drawFrame();
+
+    void cleanupSwapChain();
+
+    static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
   };
 
   VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
@@ -122,7 +148,7 @@ namespace triangle
     std::vector< VkPresentModeKHR > presentModes;
   };
 
-  std::vector< char > readFile(const std::string& filename);
+  std::vector< char > readByteFile(const std::string& filename);
 }
 
 #endif
