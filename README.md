@@ -31,3 +31,15 @@ Vulkan и OpenGL - кроссплатформенные графические A
 	- Linker -> Ввод -> Дополнительные зависимости -> glew32.lib
 	- В Path добавлен путь glew/.../bin/Realese/x64
 
+## Компиляция шейдеров
+**SPIR-V (Standard Portable Intermediate Representation - Vulkan)** - представление байткода - промежуточный результат для параллельных вычислений и графики, разработан для использования в Vulkan и OpenGL (Khronors APIs).
+
+- `.vert` - "расширение" для vertex шейдера
+- `.frag` - "расширение" для fragment шейдера
+
+Преобразование в SPIR-V на Windows:
+```
+C:/.../VulkanSDK/x.x.x.x/Bin/glslc.exe shaders/shader.vert -o vert.spv
+C:/.../VulkanSDK/x.x.x.x/Bin/glslc.exe shaders/shader.frag -o frag.spv
+```
+Чтение исходных GLSL (`shader.vert`, `shader.frag`) файлов и создание (-o: output) файлов с SPIR-V байткодом (`vert.spv`, `frag.spv`) в папке shaders.
