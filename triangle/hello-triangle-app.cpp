@@ -44,6 +44,7 @@ void triangle::HelloTriangleApp::initVulkan()
   createFramebuffers();
   createCommandPool();
   createVertexBuffer();
+  createIndexBuffer();
   createCommandBuffer();
   createSyncObjects();
 }
@@ -61,6 +62,9 @@ void triangle::HelloTriangleApp::mainLoop()
 void triangle::HelloTriangleApp::cleanup()
 {
   cleanupSwapChain();
+
+  vkDestroyBuffer(device, indexBuffer, nullptr);
+  vkFreeMemory(device, indexBufferMemory, nullptr);
 
   vkDestroyBuffer(device, vertexBuffer, nullptr);
   vkFreeMemory(device, vertexBufferMemory, nullptr);
@@ -620,40 +624,34 @@ void triangle::HelloTriangleApp::createVertexBuffer()
   vkFreeMemory(device, stagingBufferMemory, nullptr);
 }
 
-void triangle::HelloTriangleApp::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
+void triangle::HelloTriangleApp::createIndexBuffer()
 {
-  VkCommandBufferAllocateInfo allocInfo{};
-  allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-  allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-  allocInfo.commandPool = commandPool;
-  allocInfo.commandBufferCount = 1;
+  VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
 
-  VkCommandBuffer commandBuffer;
-  vkAllocateCommandBuffers(device, &allocInfo, &commandBuffer);
+  VkBuffer stagingBuffer;
+  VkDeviceMemory stagingBufferMemory;
+  createBuffer(bufferSize,
+    VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+    stagingBuffer,
+    stagingBufferMemory
+  );
 
-  VkCommandBufferBeginInfo beginInfo{};
-  beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-  beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+  void* data;
+  vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
+  memcpy(data, indices.data(), (size_t)bufferSize);
+  vkUnmapMemory(device, stagingBufferMemory);
 
-  vkBeginCommandBuffer(commandBuffer, &beginInfo);
+  createBuffer(bufferSize,
+    VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+    indexBuffer,
+    indexBufferMemory
+  );
+  copyBuffer(stagingBuffer, indexBuffer, bufferSize);
 
-  VkBufferCopy copyRegion{};
-  copyRegion.srcOffset = 0;
-  copyRegion.dstOffset = 0;
-  copyRegion.size = size;
-  vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
-
-  vkEndCommandBuffer(commandBuffer);
-
-  VkSubmitInfo submitInfo{};
-  submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-  submitInfo.commandBufferCount = 1;
-  submitInfo.pCommandBuffers = &commandBuffer;
-
-  vkQueueSubmit(graphicQueue, 1, &submitInfo, VK_NULL_HANDLE);
-  vkQueueWaitIdle(graphicQueue);
-
-  vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
+  vkDestroyBuffer(device, stagingBuffer, nullptr);
+  vkFreeMemory(device, stagingBufferMemory, nullptr);
 }
 
 void triangle::HelloTriangleApp::printAvailableExtensions()
@@ -904,6 +902,8 @@ void triangle::HelloTriangleApp::recordCommandBuffer(VkCommandBuffer commandBuff
   VkDeviceSize offsets[] = { 0 };
   vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 
+  vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT16);
+
   VkViewport viewport{};
   viewport.x = 0.0f;
   viewport.y = 0.0f;
@@ -918,7 +918,7 @@ void triangle::HelloTriangleApp::recordCommandBuffer(VkCommandBuffer commandBuff
   scissor.extent = swapChainExtent;
   vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-  vkCmdDraw(commandBuffer, static_cast< uint32_t >(vertices.size()), 1, 0, 0);
+  vkCmdDrawIndexed(commandBuffer, static_cast< uint32_t >(indices.size()), 1, 0, 0, 0);
 
   vkCmdEndRenderPass(commandBuffer);
 
@@ -1060,6 +1060,42 @@ void triangle::HelloTriangleApp::createBuffer(VkDeviceSize size, VkBufferUsageFl
   }
 
   vkBindBufferMemory(device, buffer, bufferMemory, 0);
+}
+
+void triangle::HelloTriangleApp::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
+{
+  VkCommandBufferAllocateInfo allocInfo{};
+  allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+  allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+  allocInfo.commandPool = commandPool;
+  allocInfo.commandBufferCount = 1;
+
+  VkCommandBuffer commandBuffer;
+  vkAllocateCommandBuffers(device, &allocInfo, &commandBuffer);
+
+  VkCommandBufferBeginInfo beginInfo{};
+  beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+  beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+  vkBeginCommandBuffer(commandBuffer, &beginInfo);
+
+  VkBufferCopy copyRegion{};
+  copyRegion.srcOffset = 0;
+  copyRegion.dstOffset = 0;
+  copyRegion.size = size;
+  vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
+
+  vkEndCommandBuffer(commandBuffer);
+
+  VkSubmitInfo submitInfo{};
+  submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+  submitInfo.commandBufferCount = 1;
+  submitInfo.pCommandBuffers = &commandBuffer;
+
+  vkQueueSubmit(graphicQueue, 1, &submitInfo, VK_NULL_HANDLE);
+  vkQueueWaitIdle(graphicQueue);
+
+  vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
 }
 
 VKAPI_ATTR VkBool32 VKAPI_CALL triangle::debugCallback(
