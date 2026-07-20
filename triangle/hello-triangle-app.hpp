@@ -10,14 +10,37 @@
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
 
+#include <glm/glm.hpp>
+
 #include <vector>
 #include <optional>
 #include <string>
 
 namespace triangle
 {
-  struct QueueFamilyIndices;
-  struct SwapChainSupportDetails;
+  struct QueueFamilyIndices
+  {
+    std::optional< uint32_t > graphicsFamily;
+    std::optional< uint32_t > presentFamily;
+
+    bool isComplete();
+  };
+
+  struct SwapChainSupportDetails
+  {
+    VkSurfaceCapabilitiesKHR capabilities;
+    std::vector< VkSurfaceFormatKHR > formats;
+    std::vector< VkPresentModeKHR > presentModes;
+  };
+
+  struct Vertex
+  {
+    glm::vec2 pos;
+    glm::vec3 color;
+
+    static VkVertexInputBindingDescription getBindingDescription();
+    static std::array< VkVertexInputAttributeDescription, 2 > getAttributeDescriptions();
+  };
 
   class HelloTriangleApp
   {
@@ -39,6 +62,12 @@ namespace triangle
 
     const int MAX_FRAMES_IN_FLIAGHT = 2;
 
+    const std::vector< Vertex > vertices = {
+      { {0.0f, -0.5f}, {1.0f, 1.0f, 1.0f} },
+      { {0.5f, 0.5f}, {0.0f, 1.0f, 0.0f} },
+      { {-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f} }
+    };
+
     GLFWwindow* window;
     VkInstance instance;
     VkDebugUtilsMessengerEXT debugMessanger;
@@ -58,6 +87,8 @@ namespace triangle
     std::vector< VkFramebuffer > swapChainFramebuffers;
     VkCommandPool commandPool;
     std::vector< VkCommandBuffer > commandBuffers;
+    VkBuffer vertexBuffer;
+    VkDeviceMemory vertexBufferMemory;
 
     std::vector< VkSemaphore > imageAvailableSemaphores;
     std::vector< VkSemaphore >renderFinishedSemaphores;
@@ -86,6 +117,7 @@ namespace triangle
     void createCommandBuffer();
     void createSyncObjects();
     void recreateSwapChain();
+    void createVertexBuffer();
 
     void printAvailableExtensions();
     bool checkValidationLayerSupport();
@@ -109,6 +141,11 @@ namespace triangle
     void cleanupSwapChain();
 
     static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
+
+    uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
+    void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage,
+      VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
+    void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
   };
 
   VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
@@ -132,21 +169,6 @@ namespace triangle
   );
 
   int rateDeviceSuitability(VkPhysicalDevice device);
-
-  struct QueueFamilyIndices
-  {
-    std::optional< uint32_t > graphicsFamily;
-    std::optional< uint32_t > presentFamily;
-
-    bool isComplete();
-  };
-
-  struct SwapChainSupportDetails
-  {
-    VkSurfaceCapabilitiesKHR capabilities;
-    std::vector< VkSurfaceFormatKHR > formats;
-    std::vector< VkPresentModeKHR > presentModes;
-  };
 
   std::vector< char > readByteFile(const std::string& filename);
 }
